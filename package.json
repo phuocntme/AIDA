@@ -1,0 +1,19 @@
+{
+  "name": "aida",
+  "private": true,
+  "author": "phuocntme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phuocntme/AIDA.git"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "pnpm -r test",
+    "build": "pnpm -r build",
+    "demo": "bash scripts/demo.sh",
+    "e2e": "bash scripts/e2e.sh",
+    "demo:fuji": "bash scripts/demo-fuji.sh",
+    "agents:fuji": "pnpm -F @aida/agent network:fuji",
+    "hire": "pnpm -F @aida/agent hire"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "chainId": 43113,
+  "identity": "0x11eae62a2097fc218f7f2832626caa1744c69a46",
+  "reputation": "0x0521900b337617873e12601ae2b3a71a3589e2a5",
+  "validation": "0xee6492e62b14e674df7eee108904d9d336dba71d",
+  "oracleAgentId": "1",
+  "validatorAgentId": "4",
+  "agents": {
+    "oracle": {
+      "agentId": "1",
+      "address": "0x560F592A9040A89960c84353E035d30CD1556Fa1",
+      "port": 8790,
+      "endpoint": "http://127.0.0.1:8790/report"
+    },
+    "pricepro": {
+      "agentId": "2",
+      "address": "0xcDA93bcE750509aA67aEdBb6C55F94ff65D4BA85",
+      "port": 8791,
+      "endpoint": "http://127.0.0.1:8791/quote"
+    },
+    "fastquote": {
+      "agentId": "3",
+      "address": "0x8fBA06F240715ba96481d6dfEE3b576D55790Eae",
+      "port": 8792,
+      "endpoint": "http://127.0.0.1:8792/quote"
+    },
+    "audit": {
+      "agentId": "4",
+      "address": "0x8133F1B8F870b74749160374c4d2A9Cb98E33A6c",
+      "port": 8793,
+      "endpoint": "http://127.0.0.1:8793/status"
+    },
+    "buyer": {
+      "agentId": "5",
+      "address": "0x981d5415D80f0fc7161B015A825455c2C751AFd2",
+      "port": 8794,
+      "endpoint": "http://127.0.0.1:8794/status"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+node_modules/
+dist/
+build/
+.env
+*.db
+*.db-*
+*.sqlite
+.DS_Store
+*.zip
+
+# hardhat
+artifacts/
+cache/
+types/
+dist/
+.env*
+!.env.example
+.demo-logs/
+.playwright-mcp/

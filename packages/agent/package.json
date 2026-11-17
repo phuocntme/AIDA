@@ -1,0 +1,17 @@
+{
+  "name": "@aida/agent",
+  "private": true,
+  "author": "phuocntme",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "start": "node src/server.ts",
+    "client": "node src/client.ts",
+    "network:fuji": "node src/network.ts",
+    "hire": "node src/hire.ts"
+  },
+  "dependencies": {
+    "@aida/sdk": "workspace:^",
+    "viem": "2.57.19"
+  }
+}

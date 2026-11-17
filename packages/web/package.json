@@ -1,0 +1,25 @@
+{
+  "name": "@aida/web",
+  "private": true,
+  "author": "phuocntme",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5180 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5180 --strictPort",
+    "test": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aida/sdk": "workspace:^",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "viem": "2.57.19"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "4.5.2",
+    "typescript": "5.9",
+    "vite": "6.3.5"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "aida": {
+      "command": "node",
+      "args": ["packages/mcp/src/server.ts"],
+      "env": { "CHAIN_ID": "31337" }
+    }
+  }
+}
