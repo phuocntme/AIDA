@@ -13,7 +13,8 @@ export default defineConfig({
       type: "http",
       chainType: "l1",
       url: process.env.FUJI_RPC_URL ?? "https://avalanche-fuji-c-chain-rpc.publicnode.com",
-      accounts: [configVariable("FUJI_PRIVATE_KEY")],
+      // the human guardian deploys and bootstraps; the key comes from .env.guardian, not from the agents' env file
+      accounts: [configVariable("GUARDIAN_PRIVATE_KEY")],
     },
   },
 });

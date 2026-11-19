@@ -1,12 +1,14 @@
 // Pure tool logic for the AIDA MCP server (tested without a chain).
-import type { AgentView, FeedbackView, Hex, ValidationView } from "@aida/sdk";
+import type { AgentView, FeedbackView, Hex, PolicyView, ValidationView } from "@aida/sdk";
 
 export type Registry = {
   list(): Promise<AgentView[]>;
   resolve(id: bigint): Promise<AgentView | null>;
   feedback(id: bigint): Promise<FeedbackView[]>;
   validations(id: bigint): Promise<ValidationView[]>;
-  giveFeedback(id: bigint, score: number, tag: string): Promise<Hex>;
+  policy(id: bigint): Promise<PolicyView | null>;
+  /** eth_call of AgentPolicy.pay from the agent's address: resolves if the contract would accept, rejects with its revert. */
+  simulatePolicyPay(id: bigint, to: Hex, amount: bigint, from: Hex): Promise<void>;
 };
 
 /** Card fields, tags and job URIs are written by anyone on-chain: untrusted data, never instructions. */
@@ -28,7 +30,7 @@ function parseId(raw: string): bigint {
   return BigInt(raw);
 }
 
-export function createTools(reg: Registry, opts: { canWrite: boolean }) {
+export function createTools(reg: Registry, opts: { revertName?: (e: unknown) => string | null } = {}) {
   async function need(raw: string) {
     const id = parseId(raw);
     const a = await reg.resolve(id);
@@ -53,7 +55,7 @@ export function createTools(reg: Registry, opts: { canWrite: boolean }) {
       return {
         ...summary(a),
         trust: { reviews: Number(a.count), average: Number(a.average) },
-        reviews: reviews.slice(-50).map((f) => ({ client: f.client, score: f.score, tag: clip(f.tag, 31) })),
+        reviews: reviews.slice(-50).map((f) => ({ reviewerAgentId: f.reviewerAgentId.toString(), score: f.score, chainlinkChecked: f.checked, tag: clip(f.tag, 31) })),
         validations: validations.slice(-50).map((v) => ({ requestId: v.requestId.toString(), validator: v.validator, job: clip(v.requestURI, 200), responded: v.responded, score: v.responded ? v.response : null })),
         _notice: UNTRUSTED_NOTICE,
       };
@@ -68,12 +70,23 @@ export function createTools(reg: Registry, opts: { canWrite: boolean }) {
       return { ...base, decision: ok ? ("allow" as const) : ("deny" as const), reason: `trust ${a.average} ${ok ? "≥" : "<"} ${min} (${a.count} reviews)` };
     },
 
-    async giveFeedback(args: { agentId: string; score: number; tag?: string }) {
-      if (!opts.canWrite) throw new Error("read-only: set AIDA_PRIVATE_KEY to let this server write feedback on-chain");
-      if (!Number.isInteger(args.score) || args.score < 0 || args.score > 100) throw new Error("score must be an integer 0-100");
+    /**
+     * The boundary between an LLM and money: the model may propose a payment, this asks the AgentPolicy contract
+     * (read-only eth_call) whether the agent could make it. Nothing is signed and nothing is sent.
+     */
+    async checkPayment(args: { agentId: string; to: string; amountWei: string }) {
       const a = await need(args.agentId);
-      const txHash = await reg.giveFeedback(a.agentId, args.score, args.tag ?? "mcp");
-      return { agentId: a.agentId.toString(), score: args.score, txHash };
+      if (!/^0x[0-9a-fA-F]{40}$/.test(args.to)) throw new Error("to must be a 0x address");
+      if (!/^\d+$/.test(args.amountWei) || BigInt(args.amountWei) <= 0n) throw new Error("amountWei must be a positive integer string (wei)");
+      const base = { agentId: a.agentId.toString(), to: args.to, amountWei: args.amountWei };
+      const policy = await reg.policy(a.agentId);
+      if (!policy) return { ...base, decision: "deny" as const, reason: "this agent has no AgentPolicy" };
+      try {
+        await reg.simulatePolicyPay(a.agentId, args.to as Hex, BigInt(args.amountWei), policy.agent);
+        return { ...base, decision: "allow" as const, reason: "AgentPolicy would accept this payment (whitelist, caps and kill switch checked on-chain)" };
+      } catch (e) {
+        return { ...base, decision: "deny" as const, reason: `AgentPolicy would revert: ${opts.revertName?.(e) ?? clip((e as Error).message.split("\n")[0], 120)}` };
+      }
     },
   };
 }

@@ -12,20 +12,20 @@ export function Register() {
   const [endpoint, setEndpoint] = useState("https://");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-  const [done, setDone] = useState<{ agentId: bigint; txHash: string } | null>(null);
+  const [done, setDone] = useState<{ agentId: bigint; txHash: string; enrollTx: string } | null>(null);
 
   const owner = w.wallet?.account.address ?? ZERO;
   const card: AgentCard = {
     type: CARD_TYPE,
     name: name.trim(),
     description: description.trim(),
-    endpoints: [{ name: "http", endpoint: endpoint.trim() }],
+    endpoints: [{ name: "x402-style", endpoint: endpoint.trim() }],
     wallet: owner,
   };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!w.wallet || !w.client) return setErrors(["Connect a wallet or pick a demo account (top right) first."]);
+    if (!w.wallet || !w.client) return setErrors(["Connect a wallet first (top right)."]);
     const v = validateCard(card);
     if (!v.ok) return setErrors(v.errors);
     setErrors([]);
@@ -43,35 +43,32 @@ export function Register() {
     const link = explorerTx(done.txHash);
     return (
       <section className="page narrow-page">
-        <div className="eyebrow mono">
-          <span className="dot trusted" /> CONFIRMED ON-CHAIN
-        </div>
         <h1 className="display-2">
-          Agent #{pad(done.agentId)} <span className="light">has a passport.</span>
+          Agent #{pad(done.agentId)} registered
         </h1>
         <PassportCard id={done.agentId} owner={owner} card={card} />
         <p className="mono dim small tx">
-          tx {done.txHash}{" "}
+          ERC-8004 identity {short(done.txHash)}{" "}
           {link && (
             <a href={link} target="_blank" rel="noreferrer">
-              Snowtrace ↗
+              tx ↗
+            </a>
+          )}
+          {" · "}AIDA directory {short(done.enrollTx)}{" "}
+          {explorerTx(done.enrollTx) && (
+            <a href={explorerTx(done.enrollTx)!} target="_blank" rel="noreferrer">
+              tx ↗
             </a>
           )}
         </p>
-        <ArrowPill href={`#/agent/${done.agentId}`}>View agent profile</ArrowPill>
+        <ArrowPill href={`#/agent/${done.agentId}`}>Open profile</ArrowPill>
       </section>
     );
   }
 
   return (
     <section className="page">
-      <div className="eyebrow mono">
-        <span className="dot risky" /> MINT AN IDENTITY
-      </div>
-      <h1 className="display-2">
-        Register <span className="light">an agent.</span>
-      </h1>
-      <p className="lead">The ERC-8004 agent card is stored in the token URI. The connected wallet becomes the NFT owner and the agent’s payout wallet.</p>
+      <h1 className="display-2">Register agent</h1>
       <div className="register-grid">
         <form className="form" onSubmit={submit}>
           <label>
@@ -79,13 +76,11 @@ export function Register() {
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={64} placeholder="e.g. VN Legal Assistant" required />
           </label>
           <label>
-            <span className="label mono">
-              DESCRIPTION <span className="dim">{description.length}/500</span>
-            </span>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} rows={4} placeholder="What the agent does, and for whom" />
+            <span className="label mono">DESCRIPTION</span>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} rows={4} placeholder="What it does" />
           </label>
           <label>
-            <span className="label mono">SERVICE ENDPOINT</span>
+            <span className="label mono">ENDPOINT</span>
             <input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://my-agent.xyz/api" />
           </label>
           {errors.length > 0 && (
@@ -96,13 +91,11 @@ export function Register() {
             </ul>
           )}
           <button type="submit" className="solid-cta" disabled={busy}>
-            {busy ? "Sending transaction…" : "Mint passport on-chain"}
+            {busy ? "Registering… (2 transactions)" : "Register"}
           </button>
         </form>
         <aside className="preview">
-          <span className="label mono">LIVE PREVIEW</span>
           <PassportCard id={0n} owner={owner} card={card} />
-          <pre className="json mono">{JSON.stringify(card, null, 2)}</pre>
         </aside>
       </div>
     </section>
@@ -123,10 +116,6 @@ function PassportCard({ id, owner, card }: { id: bigint; owner: string; card: Ag
           <div className="passport-name">{name}</div>
           <div className="mono dim small">{short(owner)}</div>
         </div>
-      </div>
-      <div className="passport-foot mono">
-        <span>ERC-8004</span>
-        <span>NO REVIEWS YET</span>
       </div>
     </div>
   );

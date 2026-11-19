@@ -4,14 +4,15 @@
   "author": "phuocntme",
   "type": "module",
   "scripts": {
-    "build": "hardhat build",
-    "test": "hardhat test",
+    "build": "hardhat build && node scripts/export-abi.mjs",
+    "test": "hardhat test && forge test",
+    "test:forge": "forge test",
+    "test:fork": "FUJI_RPC_URL=${FUJI_RPC_URL:-https://api.avax-test.network/ext/bc/C/rpc} forge test --match-contract Fork -vv",
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
-    "seed:local": "hardhat run scripts/seed.ts --network localhost",
-    "deploy:fuji": "set -a && . ../../.env.fuji && set +a && hardhat run scripts/deploy.ts --network fuji",
-    "seed:fuji": "set -a && . ../../.env.fuji && set +a && ORACLE_URL=${ORACLE_URL:-http://127.0.0.1:8787} hardhat run scripts/seed.ts --network fuji",
-    "bootstrap:fuji": "set -a && . ../../.env.fuji && set +a && hardhat run scripts/bootstrap-agents.ts --network fuji"
+    "bootstrap:local": "hardhat run scripts/bootstrap.ts --network localhost",
+    "deploy:fuji": "set -a && . ../../.env.guardian && set +a && hardhat run scripts/deploy.ts --network fuji",
+    "bootstrap:fuji": "set -a && . ../../.env.guardian && set +a && hardhat run scripts/bootstrap.ts --network fuji"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.1.9",

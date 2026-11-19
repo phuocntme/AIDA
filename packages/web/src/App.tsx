@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { CHAIN_ID, DEMO_ACCOUNTS, chain, deployment, useWallet } from "./aida.tsx";
+import { CHAIN_ID, DEMO_ACCOUNTS, GUARDIAN_DEMO_LABEL, chain, deployment, useWallet } from "./aida.tsx";
 import { Directory } from "./pages/Directory.tsx";
 import { Register } from "./pages/Register.tsx";
 import { Profile } from "./pages/Profile.tsx";
 import { Economy } from "./pages/Economy.tsx";
+import { Ticker } from "./Ticker.tsx";
 import { short } from "./ui.tsx";
 
 function useHash() {
@@ -11,7 +12,7 @@ function useHash() {
   useEffect(() => {
     const on = () => {
       setHash(location.hash || "#/");
-      if (!location.hash.startsWith("#directory") && !location.hash.startsWith("#how")) window.scrollTo(0, 0);
+      if (!location.hash.startsWith("#directory")) window.scrollTo(0, 0);
     };
     addEventListener("hashchange", on);
     return () => removeEventListener("hashchange", on);
@@ -21,19 +22,23 @@ function useHash() {
 
 function WalletBar() {
   const w = useWallet();
+  const address = w.wallet?.account.address;
+  const named = w.label && !w.label.includes("…");
   return (
     <div className="wallet">
-      {DEMO_ACCOUNTS.length > 0 && (
+      {!w.wallet && (DEMO_ACCOUNTS.length > 0 || w.guardianDemo) && (
         <select
           aria-label="Demo account"
           className="demo-select"
           value=""
           onChange={(e) => {
+            if (e.target.value === "guardian") return w.useGuardianDemo();
             const a = DEMO_ACCOUNTS[Number(e.target.value)];
             if (a) w.useDemo(a.key as `0x${string}`, a.label);
           }}
         >
-          <option value="">Demo account…</option>
+          <option value="">Demo account</option>
+          {w.guardianDemo && <option value="guardian">{GUARDIAN_DEMO_LABEL}</option>}
           {DEMO_ACCOUNTS.map((a, i) => (
             <option key={a.key} value={i}>
               {a.label}
@@ -41,10 +46,11 @@ function WalletBar() {
           ))}
         </select>
       )}
-      {w.wallet ? (
-        <span className="who" title={w.wallet.account.address}>
+      {address ? (
+        <span className="who" title={address}>
           <span className="dot trusted" />
-          {w.label} · <span className="mono">{short(w.wallet.account.address)}</span>
+          {named && <>{w.label} · </>}
+          <span className="mono">{short(address)}</span>
           <button className="link" onClick={w.disconnect}>
             Disconnect
           </button>
@@ -73,23 +79,24 @@ export function App() {
             <path d="M13 1 25 21H18.5L13 11.5 7.5 21H1Z" fill="var(--accent)" />
           </svg>
           <span>aida</span>
+          {chain && <span className="net-chip mono">{chain.id === 43113 ? "fuji" : chain.id === 31337 ? "local" : chain.name.toLowerCase()}</span>}
         </a>
         <nav>
           <a href="#/" className={!onRegister && !onEconomy ? "active" : ""}>
-            Directory
+            Agents
           </a>
           {deployment?.agents && (
             <a href="#/economy" className={onEconomy ? "active" : ""}>
-              Live economy
+              Economy
             </a>
           )}
           <a href="#/register" className={onRegister ? "active" : ""}>
-            Register agent
+            Register
           </a>
-          <a href="#how">How it works</a>
         </nav>
         <WalletBar />
       </header>
+      {deployment && <Ticker />}
       <main>
         {!deployment ? (
           <p className="page error-line">
@@ -105,14 +112,6 @@ export function App() {
           <Directory />
         )}
       </main>
-      <footer className="foot">
-        <span>
-          <span className="mono">aida</span> · ERC-8004 on Avalanche
-        </span>
-        <span className="mono dim">
-          Identity {deployment ? short(deployment.identity) : "—"} · Reputation {deployment ? short(deployment.reputation) : "—"} · {chain?.name}
-        </span>
-      </footer>
     </>
   );
 }

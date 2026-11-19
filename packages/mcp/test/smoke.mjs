@@ -8,5 +8,5 @@ const show = async (name, args) => console.log(`\n${name}`, JSON.stringify(args)
 await show("aida_search_agents", { minTrust: 60 });
 await show("aida_check_trust", { agentId: "2" });
 await show("aida_check_trust", { agentId: "1", minTrust: 80 });
-await show("aida_give_feedback", { agentId: "1", score: 90 });
+await show("aida_check_payment", { agentId: "5", to: "0x000000000000000000000000000000000000dEaD", amountWei: "500000000000000" });
 await client.close();

@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IdentityRegistry} from "./IdentityRegistry.sol";
+import {IERC8004Identity} from "./interfaces/IERC8004.sol";
 
-/// @title AIDA Validation Registry (ERC-8004 style)
+/// @title AIDA Validation Registry (ERC-8004-style, simplified: one validator answers once with 0-100)
 /// @notice An agent owner asks an independent validator (re-runner, auditor, TEE oracle) to check a piece of work.
 ///         The validator answers once with a 0-100 score; results are tied to the agent identity.
 contract ValidationRegistry {
-    error AgentNotFound(uint256 agentId);
     error NotAgentOwner(uint256 agentId, address caller);
     error InvalidValidator();
     error SelfValidation(uint256 agentId);
@@ -30,7 +29,7 @@ contract ValidationRegistry {
     event ValidationRequested(uint256 indexed requestId, uint256 indexed agentId, address indexed validator, string requestURI);
     event ValidationResponded(uint256 indexed requestId, uint256 indexed agentId, uint8 response);
 
-    IdentityRegistry public immutable identity;
+    IERC8004Identity public immutable identity;
 
     uint256 private _lastId;
     mapping(uint256 => Request) private _requests;
@@ -38,12 +37,11 @@ contract ValidationRegistry {
     mapping(uint256 => uint256) private _respondedCount;
     mapping(uint256 => uint256) private _responseTotal;
 
-    constructor(IdentityRegistry identity_) {
+    constructor(IERC8004Identity identity_) {
         identity = identity_;
     }
 
     function requestValidation(uint256 agentId, address validator, string calldata requestURI) external returns (uint256 requestId) {
-        if (!identity.exists(agentId)) revert AgentNotFound(agentId);
         if (identity.ownerOf(agentId) != msg.sender) revert NotAgentOwner(agentId, msg.sender);
         if (validator == address(0)) revert InvalidValidator();
         if (validator == msg.sender) revert SelfValidation(agentId);

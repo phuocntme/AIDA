@@ -39,6 +39,16 @@ describe("card URI encoding (R2)", () => {
     assert.deepEqual(decodeCardURI(uri), { ok: true, card: good });
   });
 
+  it("writes the ERC-8004 registration shape (services) and still reads older cards that say endpoints", () => {
+    const file = JSON.parse(atob(encodeCardURI(good).split(",")[1]));
+    assert.deepEqual(Object.keys(file).sort(), ["active", "description", "name", "services", "supportedTrust", "type", "wallet", "x402Support"]);
+    assert.equal(file.services[0].endpoint, "https://agent.example/a2a");
+    assert.equal(file.x402Support, false);
+    const legacy = "data:application/json;base64," + btoa(JSON.stringify({ ...good, name: "Old card", description: "" }));
+    const r = decodeCardURI(legacy);
+    assert.equal(r.ok && r.card.endpoints[0].name, "A2A");
+  });
+
   it("returns an error (never throws) for garbage URIs", () => {
     assert.equal(decodeCardURI("data:application/json;base64,!!!").ok, false);
     assert.equal(decodeCardURI("ipfs://unsupported").ok, false);

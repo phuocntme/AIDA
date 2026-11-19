@@ -1,4 +1,6 @@
-// AgentCard: subset of the ERC-8004 registration file.
+// AgentCard: subset of the ERC-8004 registration file (ERC-8004 is still a Draft; field names follow the draft of
+// Nov 2026). On-chain the service list is written as `services`, the name the registration file uses; older cards
+// that say `endpoints` are still read. `wallet` is an AIDA extension: where the agent wants to be paid.
 export const CARD_TYPE = "https://eips.ethereum.org/EIPS/eip-8004#registration-v1";
 const DATA_PREFIX = "data:application/json;base64,";
 
@@ -26,10 +28,11 @@ export function validateCard(input: unknown): CardResult {
   if (typeof c.name !== "string" || c.name.trim().length < 1 || c.name.length > 64) errors.push("name must be 1-64 characters");
   if (typeof c.description !== "string" || c.description.length > 500) errors.push("description must be a string of at most 500 characters");
   if (c.image !== undefined && !isHttp(c.image)) errors.push("image must be an http(s) URL");
-  if (!Array.isArray(c.endpoints)) {
+  const services = c.services ?? c.endpoints;
+  if (!Array.isArray(services)) {
     errors.push("endpoints must be an array");
   } else {
-    c.endpoints.forEach((e, i) => {
+    services.forEach((e, i) => {
       const ep = e as Record<string, unknown> | null;
       if (!ep || typeof ep.name !== "string" || !ep.name || !isHttp(ep.endpoint)) {
         errors.push(`endpoints[${i}] needs a name and an http(s) endpoint`);
@@ -37,7 +40,16 @@ export function validateCard(input: unknown): CardResult {
     });
   }
   if (typeof c.wallet !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(c.wallet)) errors.push("wallet must be a 0x address");
-  return errors.length ? { ok: false, errors } : { ok: true, card: input as AgentCard };
+  if (errors.length) return { ok: false, errors };
+  const card: AgentCard = {
+    type: CARD_TYPE,
+    name: c.name as string,
+    description: c.description as string,
+    ...(c.image ? { image: c.image as string } : {}),
+    endpoints: (services as Endpoint[]).map((e) => ({ name: e.name, endpoint: e.endpoint })),
+    wallet: c.wallet as `0x${string}`,
+  };
+  return { ok: true, card };
 }
 
 function utf8ToBase64(s: string): string {
@@ -52,7 +64,10 @@ function base64ToUtf8(b64: string): string {
 }
 
 export function encodeCardURI(card: AgentCard): string {
-  return DATA_PREFIX + utf8ToBase64(JSON.stringify(card));
+  const { endpoints, wallet, ...rest } = card;
+  // x402Support is false on purpose: AIDA's payments are x402-style in native AVAX, not the x402 `exact` scheme.
+  const file = { ...rest, services: endpoints, x402Support: false, active: true, supportedTrust: ["reputation"], wallet };
+  return DATA_PREFIX + utf8ToBase64(JSON.stringify(file));
 }
 
 /** Decodes and validates a data: card URI. Never throws. */

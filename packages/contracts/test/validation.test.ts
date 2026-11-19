@@ -6,7 +6,7 @@ import { getAddress } from "viem";
 const { viem, networkHelpers } = await network.create();
 
 async function deploy() {
-  const identity = await viem.deployContract("IdentityRegistry");
+  const identity = await viem.deployContract("LocalIdentityRegistry");
   const validation = await viem.deployContract("ValidationRegistry", [identity.address]);
   const [owner, validator, stranger] = await viem.getWalletClients();
   await identity.write.register(["ipfs://agent1"], { account: owner.account });
@@ -36,11 +36,8 @@ describe("ValidationRegistry (R8)", () => {
       validation,
       "NotAgentOwner",
     );
-    await viem.assertions.revertWithCustomError(
-      validation.write.requestValidation([9n, validator.account.address, "x"], { account: owner.account }),
-      validation,
-      "AgentNotFound",
-    );
+    // an id that was never minted: the identity registry's own ownerOf reverts
+    await assert.rejects(validation.write.requestValidation([9n, validator.account.address, "x"], { account: owner.account }), /ERC721NonexistentToken/);
     await viem.assertions.revertWithCustomError(
       validation.write.requestValidation([1n, "0x0000000000000000000000000000000000000000", "x"], { account: owner.account }),
       validation,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ActivityItem, AgentView } from "@aida/sdk";
-import { CHAIN_ID, explorerTx, readClient } from "./aida.tsx";
+import { CHAIN_ID, readClient } from "./aida.tsx";
 import { short } from "./ui.tsx";
 
 function ago(ts?: bigint) {
@@ -26,7 +26,7 @@ export function Activity({ agents }: { agents: AgentView[] }) {
     let live = true;
     const tick = () =>
       readClient!
-        .activity(10)
+        .activity(5)
         .then((x) => live && (setItems(x), setErr("")))
         .catch((e) => live && setErr(String((e as Error).message).split("\n")[0]));
     const every = CHAIN_ID === 31337 ? 6000 : 15000;
@@ -41,47 +41,35 @@ export function Activity({ agents }: { agents: AgentView[] }) {
   return (
     <section className="activity" aria-live="polite">
       <div className="activity-head">
-        <h2 className="display-3">
-          Live <span className="light">on-chain activity</span>
-        </h2>
-        <span className="mono label">
-          <span className="dot trusted pulse" /> LIVE FROM CHAIN
-        </span>
+        <h2 className="display-3">Activity</h2>
       </div>
       {err && !items && <p className="error-line small">Could not read events: {err}</p>}
       <div className="activity-list">
         {(items ?? []).map((i) => {
           const name = names.get(i.agentId) ?? `#${i.agentId}`;
-          const link = i.txHash ? explorerTx(i.txHash) : null;
           return (
             <a key={`${i.kind}-${i.agentId}-${i.logIndex}-${i.timestamp}`} className="activity-row" href={`#/agent/${i.agentId}`}>
               <span className="mono dim when">{ago(i.timestamp)}</span>
               <span className={`kind mono k-${i.kind}`}>
-                {i.kind === "registered" ? "MINT" : i.kind === "feedback" ? "REVIEW" : i.kind === "validated" ? "ATTEST" : "REQUEST"}
+                {i.kind === "feedback" ? "REVIEW" : i.kind === "validated" ? "AUDIT" : "REQUEST"}
               </span>
               <span className="what">
-                {i.kind === "registered" && (
-                  <>
-                    <b>{name}</b> minted an identity
-                  </>
-                )}
                 {i.kind === "feedback" && (
                   <>
-                    <b>{who(i.actor)}</b> rated <b>{name}</b> <span className={scoreCls(i.score)}>{i.score}</span>
+                    <b>{who(i.actor)}</b> paid <b>{name}</b>, {i.checked ? "Chainlink score" : "rated"} <span className={scoreCls(i.score)}>{i.score}</span>
                   </>
                 )}
                 {i.kind === "validation-requested" && (
                   <>
-                    <b>{name}</b> asked <b>{who(i.actor)}</b> to validate a job
+                    <b>{name}</b> → <b>{who(i.actor)}</b>
                   </>
                 )}
                 {i.kind === "validated" && (
                   <>
-                    a validator attested <b>{name}</b>’s work <span className={scoreCls(i.score)}>{i.score}</span>
+                    <b>{/^0x0+$/.test(i.actor) ? "Validator" : who(i.actor)}</b> audited <b>{name}</b> <span className={scoreCls(i.score)}>{i.score}</span>
                   </>
                 )}
               </span>
-              <span className="mono dim tx">{link ? "snowtrace ↗" : i.txHash ? short(i.txHash) : "on-chain"}</span>
             </a>
           );
         })}

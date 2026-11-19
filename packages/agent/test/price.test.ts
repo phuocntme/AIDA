@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { accuracyScore, formatQuoteJob, marketPrice, median, parseQuoteJob, sloppyQuoter } from "../src/price.ts";
+import { accuracyScore, formatQuoteJob, marketPrice, median, parseQuoteJob, sloppyQuoter, feedIsFresh } from "../src/price.ts";
 
 describe("accuracyScore", () => {
   it("is 100 for an exact quote and drops 12 points per 1% deviation, floored at 0", () => {
@@ -55,12 +55,21 @@ describe("marketPrice", () => {
 });
 
 describe("sloppyQuoter", () => {
-  it("keeps a stale base price and skews it by up to ±9%", () => {
+  it("keeps a stale base price and is always 4-9% off, up or down", () => {
+    const seq = [0, 0, 1, 1, 0.5, 0.2];
     let i = 0;
-    const rng = () => [0, 1, 0.5][i++ % 3];
-    const q = sloppyQuoter(10, rng);
-    assert.equal(q(), 9.1);
-    assert.equal(q(), 10.9);
-    assert.equal(q(), 10);
+    const q = sloppyQuoter(10, () => seq[i++ % seq.length]);
+    assert.equal(q(), 9.6); // -4%
+    assert.equal(q(), 10.9); // +9%
+    assert.equal(q(), 9.35); // -6.5%
+    const r = sloppyQuoter(10);
+    for (let n = 0; n < 200; n++) assert.ok(Math.abs(r() - 10) >= 0.4 - 1e-9);
+  });
+});
+
+describe("feedIsFresh", () => {
+  it("accepts a Chainlink answer up to one hour old", () => {
+    assert.equal(feedIsFresh(1000, 1000 + 3600), true);
+    assert.equal(feedIsFresh(1000, 1000 + 3601), false);
   });
 });

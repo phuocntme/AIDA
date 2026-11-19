@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.ts",
-    "start": "node src/server.ts",
-    "client": "node src/client.ts",
-    "network:fuji": "node src/network.ts",
-    "hire": "node src/hire.ts"
+    "network": "node src/network.ts",
+    "hire": "node src/hire.ts",
+    "guardian": "node src/guardian.ts",
+    "recycle": "node src/recycle.ts"
   },
   "dependencies": {
     "@aida/sdk": "workspace:^",

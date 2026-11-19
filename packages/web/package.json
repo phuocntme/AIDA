@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1 --port 5180 --strictPort",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5180 --strictPort",
-    "test": "tsc --noEmit"
+    "test": "tsc --noEmit && node --test test/*.test.ts"
   },
   "dependencies": {
     "@aida/sdk": "workspace:^",

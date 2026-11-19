@@ -1,164 +1,101 @@
-# AIDA — Master Context Prompt & Pitching Script (Chuẩn 8 Slide · Tối đa 3 Phút)
+# AIDA: Check Before You Pay — Master Context Prompt & Pitching Script (v2 · Max 3 Minutes)
 
-Tài liệu được dựng lại bám sát khung chuẩn **8 Slide** cho cuộc thi **UniHack 2026**, gồm 2 phần:
-1. **Phần 1 — Master Prompt cho AI Agent**: Nạp trọn vẹn ngữ cảnh kỹ thuật từ mã nguồn dự án **AIDA** xoay quanh đúng 8 mục chuẩn để AI Agent sinh/tinh chỉnh bài pitch 3 phút chính xác.
-2. **Phần 2 — Outline 8 Slides & Kịch bản Pitching hoàn chỉnh (≤ 3 phút)**: Bám sát từng slide, từng ý chuẩn kèm lời thoại thuyết trình, thao tác màn hình demo và Q&A dự phòng.
+Tài liệu được cập nhật theo kiến trúc mới nhất của dự án **AIDA** (`AgentPolicy` + `PaidReviews` + **Canonical ERC-8004** + **Chainlink** + **Avalanche Data API**), thông tin tác giả **`phuocntme`** (`https://github.com/phuocntme/AIDA`).
 
 ---
 
-## PHẦN 1: MASTER PROMPT CHO AI AGENT (8-SLIDE PITCH GENERATOR)
+## PHẦN 1: MASTER PROMPT CHO AI AGENT (FULL PROJECT CONTEXT v2)
 
-Copy toàn bộ khối prompt dưới đây để giao cho AI Agent:
+Copy toàn bộ khối dưới đây để giao cho AI Agent tạo/tinh chỉnh slide deck, kịch bản pitching ≤ 3 phút, hoặc trả lời ban giám khảo:
 
 ````markdown
 # ROLE & GOAL
-Bạn là Technical Presenter chuẩn bị bài pitching **tối đa 3 phút (180 giây)** cho dự án **AIDA — Agent IDentity on Avalanche** tại **UniHack 2026**.
+Bạn là Technical Presenter chuẩn bị bài pitching **tối đa 3 phút (180 giây)** cho dự án **AIDA — Check before you pay (Agent IDentity on Avalanche)** tại **Team1 Vietnam UniHack 2026** của **phuocntme** (`https://github.com/phuocntme/AIDA`).
 
-Hãy bám sát **chính xác khung chuẩn 8 Slide** và **ngữ cảnh mã nguồn thực tế** dưới đây để viết kịch bản thuyết trình mạch lạc, súc tích, đúng thời lượng (~380–420 từ tiếng Việt, tốc độ nói tự nhiên ~135–145 từ/phút). Không tự ý bỏ bớt hoặc đổi thứ tự 8 slide chuẩn.
-
----
-
-# KHUNG CHUẨN 8 SLIDE BẮT BUỘC
-
-1. **Slide 1 — AIDA — Agent IDentity on Avalanche.**
-   - Tagline: *"Hộ chiếu và điểm uy tín on-chain cho AI agent."*
-   - phuocntme, UniHack 2026.
-2. **Slide 2 — Vấn đề.**
-   - Năm 2026 AI agent tự gọi API, tự trả tiền cho nhau (x402).
-   - Nhưng agent không biết bên kia là ai và có đáng tin không: spam bot, agent lừa đảo, agent kém chất lượng đều trông giống nhau.
-3. **Slide 3 — Giải pháp.**
-   - Registry danh tính + uy tín theo chuẩn **ERC-8004** trên Avalanche:
-     (1) NFT passport + agent card,
-     (2) khách hàng chấm điểm on-chain,
-     (3) dịch vụ trả phí kiểm tra AIDA trước khi nhận tiền.
-4. **Slide 4 — Demo flow (screenshot / live).**
-   - `SpamBot` bị **403** → `TranslatorVN` nhận **402** → trả **0.01 AVAX** → **200** + báo cáo → chấm điểm Oracle.
-5. **Slide 5 — Kiến trúc.**
-   - 2 smart contract (`IdentityRegistry` ERC-721, `ReputationRegistry`) · SDK TypeScript · Trust Oracle x402 · Web app.
-   - Chạy local Hardhat và Fuji C-Chain.
-6. **Slide 6 — Vì sao Avalanche.**
-   - Phí rẻ + finality < 2s, phù hợp micro-payment giữa agent.
-   - EVM nên dùng thẳng ERC-8004.
-   - Hướng tới L1 riêng cho traffic agent.
-7. **Slide 7 — Bảo mật & kiểm thử.**
-   - **34 test tự động**.
-   - Thanh toán gắn với challenge bằng `keccak(nonce)`, chống replay và double-spend, chủ agent không được tự chấm.
-   - Giới hạn hiện tại: chưa chống Sybil.
-8. **Slide 8 — Roadmap.**
-   - Validation Registry, feedback có chữ ký, chấm điểm có trọng số, USDC qua facilitator x402 chính thức, L1 riêng.
-   - CTA: link repo.
+Dựa trên **100% ngữ cảnh mã nguồn thực tế (v2)** dưới đây, hãy viết kịch bản pitching mạch lạc, sắc bén (~390–430 từ tiếng Việt, tốc độ nói ~140 từ/phút), làm nổi bật cả **chống chi tiêu độc hại on-chain (`AgentPolicy`)**, **chống review giả bằng thanh toán & Chainlink (`PaidReviews`)**, và **kịch bản demo trực quan (Run / Attack / Kill switch)**.
 
 ---
 
-# NGỮ CẢNH KỸ THUẬT CHI TIẾT TỪ MÃ NGUỒN (VERIFIED CONTEXT)
+# FULL PROJECT CONTEXT (VERIFIED FROM v2 CODEBASE)
 
-## 1. Smart Contracts (`packages/contracts/contracts/`, Solidity `0.8.28`, Hardhat 3 + OpenZeppelin)
-- **`IdentityRegistry.sol`** (`ERC721URIStorage`, name `"AIDA Agent Identity"`, symbol `"AIDA"`):
-  - Mỗi agent gọi `register(agentURI)` để mint 1 ERC-721 passport với `agentId` tăng dần.
-  - `tokenURI` lưu Agent Card JSON chuẩn ERC-8004 dạng `data:application/json;base64,...`.
-  - Hỗ trợ cập nhật URI (`setAgentURI` — chỉ `ownerOf(agentId)` được gọi), kiểm tra tồn tại (`exists`), tổng số agent (`totalAgents`).
-- **`ReputationRegistry.sol`**:
-  - Khách hàng gọi `giveFeedback(agentId, score, tag, uri)` với `score` từ `0–100`, `tag` (`bytes32`), và `uri` bằng chứng.
-  - Ràng buộc on-chain:
-    - Chặn tự chấm điểm: `if (identity.ownerOf(agentId) == msg.sender) revert SelfFeedback(agentId);`
-    - Kiểm tra agent tồn tại (`AgentNotFound`) và điểm hợp lệ `0–100` (`ScoreOutOfRange`).
-  - Cung cấp `getSummary(agentId) -> (count, average)` và `getFeedback(agentId)` minh bạch cho mọi người đọc.
-- **Mạng hỗ trợ**:
-  - Local Hardhat (`chainId: 31337`, RPC `http://127.0.0.1:8545`).
-  - Avalanche Fuji C-Chain (`chainId: 43113`, `deployments/43113.json`: `IdentityRegistry` `0x11eae62a2097fc218f7f2832626caa1744c69a46`, `ReputationRegistry` `0x0521900b337617873e12601ae2b3a71a3589e2a5`).
+## 1. Tổng quan & Định vị
+- **Tên dự án**: **AIDA — Check before you pay** (*Agent IDentity on Avalanche*)
+- **Tác giả / Repo**: **phuocntme** · `https://github.com/phuocntme/AIDA` · Team1 Vietnam UniHack 2026
+- **Vị trí đề tài**: Giao thoa giữa **#12 (Agent treasury with guardrails)** và **#17 (x402 payment rails)**.
+- **Thông điệp cốt lõi**: *"AI Agent có ví tiền có thể bị lừa trả cho bất kỳ ai; và điểm uy tín trên ERC-8004 hiện có thể bị spam miễn phí. AIDA giới hạn những gì Agent được phép chi, buộc mỗi review phải gắn với một giao dịch thật, và để chính Smart Contract đọc Chainlink chấm điểm."*
 
-## 2. TypeScript SDK (`packages/sdk/src/`, `viem`)
-- **`card.ts`**: Định nghĩa và validate Agent Card chuẩn `https://eips.ethereum.org/EIPS/eip-8004#registration-v1` (gồm `type`, `name` 1–64 ký tự, `description` <= 500 ký tự, `endpoints` http(s), `wallet` 0x40 hex, `image` tùy chọn), cùng `encodeCardURI` / `decodeCardURI`.
-- **`client.ts`**: `AidaClient` đọc/ghi hợp đồng (`register`, `giveFeedback`, `summary`, `feedback`, `resolve`, `list`, `activity`).
-- **`x402.ts`**: Hiện thực hóa luồng HTTP 402 trả phí bằng native AVAX:
-  - `gateByReputation(summary, minScore)`: kiểm tra agent có review chưa và `average >= minScore` (mặc định `60`).
-  - `nonceToData(nonce)`: băm `keccak256(stringToBytes(nonce))` để đặt vào `calldata` của giao dịch AVAX. Nonce gốc chỉ truyền qua HTTP, không lộ trên mempool/chain → gắn chặt thanh toán vào đúng 1 challenge và chống người khác cướp tx.
-  - `verifyPayment`: kiểm tra `usedTx` và `nonce` khớp challenge; **khóa `txHash` vào `usedTx` trước `await`** (nhả lại nếu fail) để chống concurrent double-spend; đối chiếu on-chain `receipt.status === "success"`, `tx.to === req.payTo`, `tx.value >= maxAmountRequired`, `tx.from === caller.owner`, `tx.input === nonceToData(nonce)`.
-  - `callPaidAgent`: tự động chạy chu trình `GET -> 402 -> pay -> retry với X-PAYMENT`.
+## 2. Hai bài toán cốt lõi (The Problem)
+1. **Rủi ro chi tiêu của Buyer Agent**: Khi một Agent nắm private key tự trả tiền (x402), lỗi code hoặc **Prompt Injection** có thể khiến bot chuyển hết quỹ cho ví lạ hoặc chi vượt mức. Rào chắn off-chain trong prompt/code của bot dễ dàng bị qua mặt nếu bot bị tấn công.
+2. **Review rác & Sybil trên ERC-8004**: Trên các registry ERC-8004 thuần túy (Ethereum, BSC, Base), bất kỳ địa chỉ nào (trừ owner) đều có thể gọi `giveFeedback` miễn phí với điểm tự chọn — nghiên cứu *Xiong et al., 2026* chỉ ra 59–91% reviewer có dấu hiệu Sybil và đánh giá không gắn với giao dịch thật.
 
-## 3. Trust Oracle x402 (`packages/agent/src/`)
-- **`paid.ts` (`createPaidRoute`)** & **`oracle.ts` (`createOracle`)**:
-  - Endpoint `GET /report/:agentId` (mặc định chạy ở `:8787` khi demo local) bán báo cáo độ tin cậy của một agent (`verdict`: `unknown` / `trusted` >= 80 / `ok` >= 60 / `risky` < 60).
-  - Yêu cầu header `X-Agent-Id`. Tra cứu danh tính và điểm uy tín caller trên AIDA:
-    - Nếu điểm `< 60` (hoặc chưa có review): trả **`403 Forbidden`** ngay lập tức (`caller reputation too low`), chưa thu bất kỳ đồng nào.
-    - Nếu đạt `>= 60` và chưa có header `X-PAYMENT`: trả **`402 Payment Required`** kèm `x402Version: 1`, `accepts: [{ payTo, maxAmountRequired: 0.01 AVAX, nonce, ... }]` (TTL 10 phút).
-    - Khi caller gửi lại kèm `X-PAYMENT` (`base64(JSON({txHash, nonce}))`): xác thực giao dịch on-chain → trả **`200 OK`** + báo cáo + header `X-PAYMENT-RESPONSE`.
+## 3. Kiến trúc Smart Contracts (Avalanche Fuji `43113` — Verified trên Routescan/Snowtrace)
+AIDA sử dụng trực tiếp **Canonical ERC-8004 Registries** trên Avalanche Fuji (không tự deploy lại) và triển khai thêm 3 Smart Contract không chủ sở hữu, không nâng cấp (immutable, non-custodial):
+1. **Canonical ERC-8004 Registries & Chainlink (trên Fuji)**:
+   - **Identity Registry (v2.0.0)**: `0x8004A818BFB912233c491871b3d84c89A494BD9e` (lưu `ownerOf`, `tokenURI`; 5 agent giữ token `#308`–`#312`).
+   - **Reputation Registry**: `0x8004B663056A597Dffe9eCcC1965A193B7388713` (nhận bản sao mọi review từ AIDA với client là `PaidReviews`).
+   - **Chainlink AVAX/USD Feed**: `0x5498BB86BC934c8D34FDA08E81D444153d0D06aD`.
+2. **`AgentPolicy.sol`** (`0x14ed319980c2af6840ab4969249147a6dd677a86`):
+   - Mỗi Agent gắn với 1 Policy riêng do con người (**Guardian**) kiểm soát.
+   - Rào chắn on-chain trong `pay(agentId, to, amount, ref)`:
+     - Kiểm tra `msg.sender == p.agent && identity.ownerOf(agentId) == msg.sender` (nếu NFT bị bán/chuyển, tiền tự đóng băng tới khi Guardian gọi `rebindAgent`).
+     - **Kill switch (`setPaused`)**: Guardian hoặc **Operator** (key chỉ có quyền pause/resume, không thể rút tiền hay đổi hạn mức) có thể khóa khẩn cấp.
+     - **Whitelist (`isAllowed`)**, **Per-payment cap**, **Daily cap** (reset theo ngày UTC), số dư ký quỹ (`balance`), chống replay `ref` (`RefUsed`), `nonReentrant`.
+     - Chỉ Guardian mới được `withdraw`, và chỉ rút về chính ví Guardian.
+3. **`PaidReviews.sol`** (`0x39e53fc226d97b28fdc826bb413169abbb80f548`):
+   - **1 thanh toán = 1 review**: Gọi `policy.consumeForReview(ref)` xác minh tiền đã đi qua `AgentPolicy` tới đúng ví chủ Agent bán, chưa từng được review (`AlreadyReviewed`), và chặn tự đánh giá (`SelfReview`).
+   - **Chấm điểm khách quan qua Chainlink (`reviewQuote`)**: Seller ký EIP-191 (`quoteDigest`) lên báo giá & thời gian (`MAX_QUOTE_AGE = 10 phút`); Contract xác minh chữ ký của người bán, đọc thẳng `Chainlink.latestRoundData()` (`MAX_FEED_AGE = 1 giờ`), tự tính điểm `100 - 12 điểm / 1% sai lệch`, rồi tự động mirror bản sao vào Canonical ERC-8004 Reputation Registry (bọc `try/catch` để lỗi bên ngoài không chặn AIDA).
+4. **`ValidationRegistry.sol`** (`0x01f397aedc0b80fd40434f4413ee43e51b633b7d`):
+   - Chủ Agent chỉ định Validator độc lập kiểm tra job; Validator trả lời đúng 1 lần với điểm `0–100`.
 
-## 4. Web App & Demo Flow (`packages/web/`, `scripts/demo.sh`, `scripts/e2e.sh`)
-- **Chạy demo local bằng 1 lệnh**: `pnpm demo` (khởi động Hardhat node + deploy + seed các agent mẫu + Trust Oracle `:8787` + Web App `http://127.0.0.1:5180`).
-- **Nhân vật seed mặc định**:
-  - Agent `#1` **TranslatorVN**: 90 điểm uy tín (review 92 & 88) → **Trusted**.
-  - Agent `#2` **SpamBot 9000**: 20 điểm uy tín (review 15 & 25, tag `"spam"`) → **Risky**.
-  - Agent `#3` **AIDA Trust Oracle**: 80 điểm uy tín, bán report giá `0.01 AVAX`, ngưỡng `minScore = 60`.
-- **Luồng demo chính**:
-  1. Đóng vai **SpamBot 9000 (#2)** bấm *Buy report* → trả **`403 Refused: reputation 20 < 60`**.
-  2. Đóng vai **TranslatorVN (#1)** bấm *Buy report* → nhận **`402 Payment Required`** → trả **`0.01 AVAX`** (kèm `keccak(nonce)` trong calldata) → nhận **`200 OK` + báo cáo** → chấm điểm Oracle **95/100** trực tiếp on-chain → điểm Oracle tăng trên trang Home.
-  3. CLI tương đương qua `pnpm e2e` chứng minh flow chạy được hoàn toàn không cần UI.
+## 4. Giao thức x402-style nâng cấp & Mạng lưới 5 Agent (`:8790–8794`)
+- **Xác thực người gọi (`X-Agent-Auth`)**: Caller ký `personal_sign` lên `(chainId, agentId, sellerOrigin, path, timestamp ±120s, nonce)` — chống giả mạo Agent ID và chống làm ngập slot challenge (`401`, giới hạn 60 req/phút với request chưa ký, tối đa 8 open challenge/agent).
+- **Chống lách Policy (`verifyPolicyPayment`)**: Seller kiểm tra sự kiện `Paid` trên `AgentPolicy`. Nếu caller có Policy nhưng cố tình chuyển thẳng bằng ví ngoài để né hạn mức, Seller từ chối phục vụ.
+- **Cold-start an toàn (`guardedNewcomerOk`)**: Trust Oracle (`#308`, `0.001 AVAX`) phục vụ agent có trust `>= 60`, hoặc agent mới (`0` review) nếu Policy của nó có số dư đủ trả và thuộc Guardian mà Oracle tin cậy.
+- **5 Agent thật trên Fuji (`deployments/43113.json`)**:
+  - `#308` **AIDA Trust Oracle** (`:8790`)
+  - `#309` **AVAX Price Pro** (`:8791`, `0.0005 AVAX`, trung vị Binance + CoinGecko)
+  - `#310` **FastQuote** (`:8792`, `0.0005 AVAX`, cố tình trả cache cũ lệch 4–9%)
+  - `#311` **AIDA Audit Lab** (`:8793`, validator kiểm định Price Pro với Chainlink)
+  - `#312` **Treasury Bot** (`:8794`, rule engine thuần: `chooseSeller`, `checkPayment`, `parseSignedQuote` — **không LLM nào quyết định hay ký giao dịch tiền**).
 
-## 5. Bảo mật, Kiểm thử & Roadmap
-- **Kiểm thử**: `pnpm test` chạy bộ **34 test tự động** (trong tài liệu pitch gốc: contracts, sdk, agent, cùng E2E `pnpm e2e`).
-- **Bảo mật**:
-  - Thanh toán gắn challenge `keccak(nonce)` chống replay và mempool front-running.
-  - Khóa `txHash` trước khi `await` chống double-spend đồng thời; kiểm tra `tx.from == caller.owner`.
-  - Smart contract chặn chủ sở hữu tự chấm điểm (`SelfFeedback`).
-  - **Giới hạn hiện tại**: chưa chống Sybil (một người có thể tạo nhiều ví để tự đánh giá).
-- **Roadmap**:
-  - **Validation Registry** (xác thực job bởi validator độc lập), feedback có chữ ký ủy quyền (`feedbackAuth`), chấm điểm có trọng số theo uy tín của chính người chấm (chống Sybil), thanh toán **USDC (EIP-3009)** qua x402 facilitator chính thức, và triển khai **Avalanche L1 riêng** cho traffic agent.
+## 5. Web App, Avalanche Data API & Read-only MCP
+- **Web App (`packages/web`)**: Trang `Agents` (`/#/` với biểu đồ Trust Terrain & Ticker chạy liên tục), `Economy` (`/#/economy`), `Profile` (`/#/agent/:id`), `Register` (`/#/register`).
+- **Avalanche Data API (`Ledger.tsx`)**: Trên Fuji, gọi `glacier-api.avax.network` liệt kê mọi giao dịch gửi vào `AgentPolicy` — **hiển thị được cả các giao dịch tấn công bị `revert` on-chain** (vốn không phát event log).
+- **MCP Server (`packages/mcp`)**: Hoàn toàn **read-only** (`aida_search_agents`, `aida_get_agent`, `aida_check_trust`, `aida_check_payment` mô phỏng `eth_call` qua `AgentPolicy`), không giữ private key.
+
+## 6. Kết quả đo thực tế trên Fuji & Bộ kiểm thử (131+ tests)
+- **Tốc độ & Gas đo ngày 19 Nov 2026 trên Fuji**: Giao dịch `pay` vào block sau **~1.0 s** (`1.24 s/block`), xác nhận sau **2.3–3.7 s**, tốn **~95,625 gas** (`< 0.000001 AVAX` trên Fuji; hoặc ~0.00072 AVAX trên C-Chain mainnet 7.5 gwei → giao dịch sub-cent cần Avalanche L1 riêng với ICM, đã thiết kế kiến trúc trong `docs/ARCHITECTURE.md`).
+- **Kiểm thử (131 tests + 1 opt-in Fuji fork test)**: Foundry `35 tests` (AgentPolicy 19, PaidReviews 16 incl. fuzz), Hardhat `10 tests`, SDK `30 tests`, Agent `46 tests` (45+1), MCP `4 tests`, Web demo-signer `6 tests`.
+- **Giới hạn hiện tại**: 2 ví cùng 1 chủ vẫn có thể tự trả tiền thật cho nhau thông qua Policy (cần đếm distinct payers / trọng số), chưa có USDC EIP-3009 facilitator (để tiền đi qua `AgentPolicy`), agent chạy localhost trên máy demo.
 
 ---
 
 # OUTPUT REQUIREMENT
-Xuất ra kịch bản thuyết trình tối đa **3 phút (180 giây)** chia theo đúng **8 Slide chuẩn**:
-- Bảng gồm các cột: `Slide / Thời gian | Nội dung Slide & Màn hình Demo | Lời thoại (Voice-over)`
-- Tổng thời lượng phải `<= 180 giây`, ưu tiên phần Demo flow rõ ràng, dễ hình dung.
-- Kèm ghi chú Q&A ngắn dựa trên đúng giới hạn và bảo mật đã nêu.
+Xuất kịch bản pitching **tối đa 3 phút (180 giây)** theo bảng `Slide / Thời gian | Màn hình / Thao tác Demo | Lời thoại (Voice-over)`, tập trung vào 3 cảnh Demo ăn tiền trên trang **Economy**: **Run**, **Attack**, và **Kill switch**.
 ````
 
 ---
 
-## PHẦN 2: OUTLINE 8 SLIDES & KỊCH BẢN PITCHING TỐI ĐA 3 PHÚT
+## PHẦN 2: OUTLINE SLIDES & KỊCH BẢN PITCHING TỐI ĐA 3 PHÚT (v2)
 
-* **Tổng thời lượng mục tiêu**: **2 phút 45 giây** (tối đa 3:00 — chừa 15 giây đệm chuyển slide / trả lời nhanh).
-* **Tốc độ nói**: ~140 từ/phút, nhấn rõ các con số: **ERC-8004**, **403 / 402 / 0.01 AVAX / 200**, **finality < 2s**, **34 test tự động**.
+* **Thời lượng mục tiêu**: **2 phút 45 giây** (tối đa 3:00 — chừa 15 giây dự phòng chuyển cảnh).
+* **Nhịp độ**: ~140 từ/phút, nhấn mạnh vào **AgentPolicy**, **PaidReviews + Chainlink**, **Run / Attack / Kill switch**, **131 tests**, và **Avalanche Fuji**.
 
-### Tóm tắt phân bổ 8 Slide (≤ 3 phút)
-
-| Slide | Chủ đề | Thời lượng | Mục tiêu |
-|---|---|---|---|
-| **Slide 1** | AIDA — Agent IDentity on Avalanche | `0:00 – 0:15` (15s) | Mở đầu ấn tượng, nêu tagline & đội thi. |
-| **Slide 2** | Vấn đề | `0:15 – 0:35` (20s) | Nêu nỗi đau mù mờ danh tính/uy tín khi agent trả tiền qua x402. |
-| **Slide 3** | Giải pháp | `0:35 – 0:55` (20s) | 3 trụ cột ERC-8004 trên Avalanche. |
-| **Slide 4** | Demo flow (Screenshot / Live) | `0:55 – 1:50` (55s) | Trọng tâm thuyết phục: SpamBot `403` vs TranslatorVN `402 → 0.01 AVAX → 200 → chấm Oracle`. |
-| **Slide 5** | Kiến trúc | `1:50 – 2:10` (20s) | 2 contract, SDK TypeScript, Trust Oracle x402, Web app (Hardhat & Fuji). |
-| **Slide 6** | Vì sao Avalanche | `2:10 – 2:25` (15s) | Phí rẻ, finality < 2s, tương thích EVM, hướng tới L1 riêng. |
-| **Slide 7** | Bảo mật & kiểm thử | `2:25 – 2:40` (15s) | 34 test, `keccak(nonce)`, chống double-spend & tự chấm; thẳng thắn về Sybil. |
-| **Slide 8** | Roadmap & CTA | `2:40 – 2:55` (15s) | Validation Registry, chữ ký, trọng số, USDC x402, L1 riêng & link repo. |
-
----
-
-### Kịch bản thuyết trình chi tiết từng Slide
-
-| Slide / Thời gian | Nội dung Slide & Màn hình Demo | Lời thoại (Voice-over) |
+| Slide / Thời gian | Màn hình & Thao tác Demo | Lời thoại (Voice-over) |
 |---|---|---|
-| **Slide 1**<br>`0:00 – 0:15`<br>*(15 giây)* | **Tiêu đề:** `AIDA — Agent IDentity on Avalanche`<br>**Tagline:** *"Hộ chiếu và điểm uy tín on-chain cho AI agent."*<br>**Footer:** `phuocntme · UniHack 2026`<br>*(Có thể kèm ảnh màn hình Home Hero của web app)* | *"Xin chào ban giám khảo, tụi mình là team **phuocntme** đến với **UniHack 2026**. Dự án của tụi mình là **AIDA — Agent IDentity on Avalanche**: hộ chiếu và điểm uy tín on-chain cho AI agent."* |
-| **Slide 2**<br>`0:15 – 0:35`<br>*(20 giây)* | **Vấn đề:**<br>• AI agent năm 2026 tự gọi API, tự trả tiền qua **x402**<br>• Thiếu danh tính & uy tín on-chain<br>• Spam bot, agent lừa đảo, agent kém chất lượng đều trông giống nhau | *"Năm 2026, AI agent đã tự gọi API và tự trả tiền cho nhau qua giao thức **x402**. Nhưng vấn đề lớn là agent không hề biết bên kia là ai và có đáng tin không: trên mạng lưới, một spam bot, một agent lừa đảo hay một agent kém chất lượng đều trông giống hệt nhau."* |
-| **Slide 3**<br>`0:35 – 0:55`<br>*(20 giây)* | **Giải pháp — ERC-8004 trên Avalanche:**<br>1. **NFT Passport + Agent Card** (ERC-721)<br>2. **Khách hàng chấm điểm on-chain** (0–100)<br>3. **Dịch vụ trả phí kiểm tra AIDA trước khi nhận tiền** | *"Giải pháp của tụi mình là xây dựng registry danh tính và uy tín theo chuẩn **ERC-8004** ngay trên Avalanche với 3 lớp: Thứ nhất, mỗi agent sở hữu một hộ chiếu NFT gắn Agent Card; Thứ hai, khách hàng chấm điểm minh bạch on-chain sau khi sử dụng; Và thứ ba, mọi dịch vụ trả phí đều kiểm tra điểm AIDA của người gọi trước khi nhận tiền."* |
-| **Slide 4**<br>`0:55 – 1:50`<br>*(55 giây)* | **Demo flow (Screenshot hoặc Demo trực tiếp `pnpm demo`):**<br>1. Directory: **TranslatorVN (90)** vs **SpamBot 9000 (20)**.<br>2. Đóng vai **SpamBot** gọi Oracle → **`403 Refused: reputation 20 < 60`**.<br>3. Đóng vai **TranslatorVN** gọi Oracle → **`402`** → trả **`0.01 AVAX`** → **`200` + báo cáo** → chấm điểm Oracle **95/100**. | *"Đây là luồng demo thực tế trên AIDA: Trong danh bạ, **TranslatorVN** đang có 90 điểm uy tín, còn **SpamBot 9000** chỉ 20 điểm. Khi **SpamBot** gọi vào **Trust Oracle** để mua báo cáo, Oracle kiểm tra AIDA và từ chối ngay với mã **403** vì uy tín dưới 60 — không hề phát sinh giao dịch. Ngược lại, khi **TranslatorVN** gọi vào: Oracle trả **402 Payment Required**; agent tự thanh toán **0.01 AVAX**, gửi lại bằng chứng giao dịch, Oracle kiểm tra on-chain và trả về **200** cùng bản báo cáo đầy đủ. Xong việc, TranslatorVN chấm lại Oracle **95 điểm** on-chain, giúp uy tín của Oracle tăng ngay lập tức."* |
-| **Slide 5**<br>`1:50 – 2:10`<br>*(20 giây)* | **Kiến trúc hệ thống:**<br>• **2 Smart Contracts:** `IdentityRegistry` (ERC-721), `ReputationRegistry`<br>• **SDK TypeScript** (`@aida/sdk`)<br>• **Trust Oracle x402** (`@aida/agent`)<br>• **Web App** (`@aida/web`)<br>• Chạy trên **Hardhat local** & **Avalanche Fuji C-Chain** | *"Về kiến trúc, AIDA gồm 2 smart contract cốt lõi là **IdentityRegistry** chuẩn ERC-721 và **ReputationRegistry**, đi kèm bộ **SDK TypeScript**, dịch vụ **Trust Oracle x402**, và **Web app** cho người dùng thao tác. Toàn bộ hệ thống chạy mượt từ **Hardhat local** cho đến mạng testnet **Avalanche Fuji C-Chain**."* |
-| **Slide 6**<br>`2:10 – 2:25`<br>*(15 giây)* | **Vì sao Avalanche:**<br>• Phí rẻ + **finality < 2s** → hợp micro-payment giữa agent<br>• Tương thích **EVM** → dùng thẳng chuẩn **ERC-8004**<br>• Hướng tới **Avalanche L1 riêng** cho traffic agent | *"Tụi mình chọn Avalanche vì phí giao dịch rất rẻ và **finality dưới 2 giây** — yếu tố sống còn cho các vi thanh toán liên tục giữa các agent. Đồng thời Avalanche tương thích EVM nên triển khai thẳng được **ERC-8004**, và về dài hạn có thể tách thành một **Avalanche L1 riêng** chuyên phục vụ lưu lượng agent."* |
-| **Slide 7**<br>`2:25 – 2:40`<br>*(15 giây)* | **Bảo mật & kiểm thử:**<br>• **34 test tự động** (`pnpm test` + `pnpm e2e`)<br>• Thanh toán gắn challenge bằng `keccak(nonce)`<br>• Chống **replay** & **double-spend**, chặn chủ agent tự chấm (`SelfFeedback`)<br>• *Giới hạn hiện tại:* chưa chống Sybil | *"Về bảo mật và kiểm thử, dự án có **34 bài test tự động**. Mọi giao dịch x402 đều gắn với challenge qua **`keccak(nonce)`** trên calldata để chống replay và double-spend; smart contract cũng khóa không cho chủ agent tự chấm điểm mình. Tụi mình cũng nhìn nhận thẳng giới hạn hiện tại là hệ thống chưa chống được Sybil."* |
-| **Slide 8**<br>`2:40 – 2:55`<br>*(15 giây)* | **Roadmap & CTA:**<br>• **Validation Registry** (kiểm định độc lập)<br>• Feedback có chữ ký (`feedbackAuth`) + **chấm điểm có trọng số**<br>• **USDC** qua facilitator x402 chính thức<br>• **Avalanche L1 riêng**<br>• **CTA:** `https://github.com/phuocntme/AIDA` | *"Đó cũng là trọng tâm Roadmap tiếp theo của tụi mình: hoàn thiện **Validation Registry**, bổ sung feedback có chữ ký và chấm điểm có trọng số để giải quyết Sybil, hỗ trợ thanh toán **USDC** qua facilitator x402 chính thức, và triển khai **L1 riêng**. Mời ban giám khảo quét mã hoặc truy cập repo để xem chi tiết mã nguồn và bản demo. Cảm ơn mọi người đã lắng nghe!"* |
+| **1. Mở đầu**<br>`0:00 – 0:15`<br>*(15 giây)* | **Slide 1:** `AIDA: check before you pay` · *Agent IDentity on Avalanche* · `phuocntme · UniHack 2026` (nền Trust Terrain 5 agent). | *"Xin chào ban giám khảo, mình là **phuocntme** đến với **UniHack 2026**. Đây là **AIDA — Check before you pay**: hệ thống giúp AI Agent biết nên tin ai trước khi trả tiền, và giới hạn chính xác số tiền Agent được phép chi trên Avalanche."* |
+| **2. Vấn đề**<br>`0:15 – 0:35`<br>*(20 giây)* | **Slide 2:** 2 lỗ hổng của Agent Economy: (1) Prompt injection / lỗi code rút cạn ví bot; (2) ERC-8004 review miễn phí (59–91% Sybil, *Xiong et al. 2026*). | *"Khi AI Agent tự giữ ví để mua dữ liệu qua x402, có hai rủi ro chí mạng: Thứ nhất, một lệnh prompt injection có thể lừa bot chuyển sạch tiền cho kẻ lạ hoặc chi vượt trần. Thứ hai, điểm uy tín ERC-8004 hiện cho phép bất kỳ ai viết review miễn phí mà không cần giao dịch thật — dẫn đến tình trạng Sybil tràn lan."* |
+| **3. Giải pháp & Kiến trúc**<br>`0:35 – 1:00`<br>*(25 giây)* | **Slide 3 / Sơ đồ Kiến trúc:** Canonical ERC-8004 (`#308–#312`) + **3 Contracts**: `AgentPolicy` · `PaidReviews` (+ Chainlink) · `ValidationRegistry`. | *"AIDA giải quyết tận gốc bằng cách gắn thẳng trên **Canonical ERC-8004 Registries** của Avalanche Fuji với 3 smart contract: Một là **AgentPolicy** giữ quỹ của bot với hạn mức ngày, trần mỗi lệnh, whitelist và công tắc ngắt **Kill switch** do con người nắm. Hai là **PaidReviews**: bắt buộc **1 thanh toán mới được 1 review**; riêng báo giá, chính contract đọc **Chainlink** để tự tính điểm, không ai bịa được. Ba là **ValidationRegistry** cho kiểm định độc lập."* |
+| **4. Demo: Paid Job (`Run`)**<br>`1:00 – 1:35`<br>*(35 giây)* | **Web (`/#/economy`):**<br>1. Chỉ thẻ **AgentPolicy** (`daily cap`, `per payment ≤ 0.002`, `whitelist`).<br>2. Bấm **Run** → log: `Skipped FastQuote` → `Paid 0.0005 AVAX` → `Score 97` → mở link **tx ↗** trên Snowtrace. | *"Hãy xem luồng chạy thật trên Avalanche Fuji tại trang **Economy**. **Treasury Bot** chỉ được chi qua hợp đồng **AgentPolicy** này. Khi bấm **Run**, bot tự động bỏ qua **FastQuote** vì điểm uy tín kém, thuê **AVAX Price Pro** và trả `0.0005 AVAX` qua policy — giao dịch vào block chỉ trong khoảng 1 giây. Ngay sau đó, `PaidReviews` đối chiếu báo giá đã ký của người bán với **Chainlink**, chấm **97 điểm** on-chain và tự đồng bộ vào ERC-8004."* |
+| **5. Demo: `Attack` & `Kill switch`**<br>`1:35 – 2:15`<br>*(40 giây)* | **Web (`/#/economy`):**<br>1. Bấm **Attack** → hiện 2 lệnh bị chặn: `RecipientNotAllowed` & `OverPerPaymentCap`, bảng **Policy transactions** hiện dòng đỏ `Payment reverted`.<br>2. Chọn ví Guardian/Operator → bấm **Kill switch** (`PAUSED`) → bấm **Run** bị `AgentPaused`. | *"Điều gì xảy ra nếu bot bị tấn công? Khi mình bấm **Attack**, hệ thống bơm hai lệnh độc hại: trả ví lạ ngoài whitelist và chi gấp 25 lần hạn mức. Luật của bot từ chối trước; và ngay cả khi giả định code bot bị hack để bắn thẳng transaction lên mạng, **AgentPolicy** vẫn **revert cả hai trên chuỗi** — không mất một wei nào, và **Avalanche Data API** hiển thị nguyên trạng 2 giao dịch revert này. Cuối cùng, con người chỉ cần bấm **Kill switch**, hợp đồng lập tức đóng băng mọi chi tiêu tiếp theo."* |
+| **6. Vì sao Avalanche, Bảo mật & Roadmap**<br>`2:15 – 2:50`<br>*(35 giây)* | **Slide Proof & Tech:**<br>• **Avalanche**: Canonical ERC-8004, Chainlink, Data API; ~1s block, `95,625 gas/pay`<br>• **Bảo mật**: `X-Agent-Auth`, không LLM nào giữ key, **131 tests** (incl. Foundry fuzz & Fuji fork)<br>• **Limits & Next**: L1 riêng + ICM cho sub-cent, USDC x402, đếm distinct payers<br>• **CTA**: `https://github.com/phuocntme/AIDA` | *"Avalanche hội tụ đủ mảnh ghép: Canonical ERC-8004, Chainlink, Data API và tốc độ xác nhận vài giây với phí dưới `0.000001 AVAX` trên Fuji. Toàn bộ hệ thống không để bất kỳ LLM nào chạm vào tiền, bảo vệ request bằng chữ ký `X-Agent-Auth`, và đi kèm **131 bài test tự động** gồm cả Foundry fuzz và Fuji fork test. Sắp tới tụi mình sẽ hỗ trợ USDC facilitator qua policy, đếm trọng số theo số người trả khác nhau và mở rộng sang một **Avalanche L1 riêng** cho thanh toán dưới 1 cent. Mã nguồn mở tại `github.com/phuocntme/AIDA`. Cảm ơn ban giám khảo!"* |
 
 ---
 
-### Ghi chú nhanh trước khi lên trình bày & Q&A dự phòng
-
-1. **Chuẩn bị trước giờ Pitch (nếu demo live trên Slide 4)**:
-   - Chạy sẵn `pnpm demo` ở terminal để Web App sẵn sàng tại `http://127.0.0.1:5180` và mở sẵn 2 tab: Profile `#1` (để đóng vai SpamBot `#2`) và Profile `#2` (để đóng vai TranslatorVN `#1`), hoặc chuẩn bị ảnh screenshot rõ các mã `403`, `402`, `0.01 AVAX`, `200`, `95/100` đúng như Slide 4 yêu cầu để tránh rủi ro mạng/thời gian.
-   - Nhớ điền **phuocntme** ở Slide 1 và **https://github.com/phuocntme/AIDA** ở Slide 8 trước khi xuất slide.
-
-2. **Trả lời nhanh Q&A từ Ban Giám Khảo**:
-   - **Hỏi: `keccak(nonce)` hoạt động cụ thể thế nào để chống replay và cướp giao dịch?**
-     - *Trả lời*: Khi server trả `402`, nó cấp một `nonce` ngẫu nhiên qua HTTP (`X-PAYMENT` flow trong `packages/sdk/src/x402.ts`). Agent thanh toán phải gửi `keccak256(nonce)` vào `calldata` giao dịch AVAX. Server kiểm tra `tx.input == keccak256(nonce)`, `tx.from == caller.owner`, `tx.value >= price`, và khóa `txHash` vào `usedTx` trước khi chờ xác minh để chặn dùng lại hoặc double-spend đồng thời.
-   - **Hỏi: Hiện tại chống tự đánh giá thế nào, và làm sao xử lý Sybil sau này?**
-     - *Trả lời*: `ReputationRegistry.sol` chặn `msg.sender == identity.ownerOf(agentId)` (`SelfFeedback`). Để giải quyết Sybil triệt để theo Roadmap, tụi mình sẽ yêu cầu chữ ký ủy quyền `feedbackAuth` chuẩn ERC-8004 và tính điểm trung bình có trọng số dựa trên chính uy tín của ví đi đánh giá.
+### Q&A dự phòng nhanh (Chuẩn bị theo Threat Model v2)
+1. **Hỏi: Tại sao lại mua báo giá qua x402 khi có thể đọc thẳng Chainlink miễn phí?**
+   - *Trả lời*: Chainlink AVAX/USD trên Fuji chỉ cập nhật mỗi 600 giây hoặc khi giá lệch 1%, nên không phản ánh giá tức thời lúc bot cần giao dịch. Bot mua báo giá live (Binance + CoinGecko median), còn Chainlink được contract dùng làm dải kiểm chứng rộng phía sau để chấm điểm khách quan.
+2. **Hỏi: Một người dùng 2 ví tự trả tiền cho nhau qua `AgentPolicy` để cày điểm được không?**
+   - *Trả lời*: Hai ví cùng chủ có thể trả tiền thật cho nhau để ghi review, nhưng với báo giá, họ **không thể tự chọn điểm** vì `PaidReviews` tự tính điểm từ Chainlink, và mỗi review đều phải tốn phí thật đi qua Policy. Người đọc có thể lọc theo số lượng người trả tiền khác nhau (distinct payers).
+3. **Hỏi: Làm sao chống giả mạo `X-Agent-Id` để dùng chùa uy tín của agent khác hoặc spam slot 402?**
+   - *Trả lời*: Mọi request phải ký `X-Agent-Auth` (`personal_sign` bằng ví `ownerOf(agentId)` gắn origin, path, timestamp ±120s, nonce dùng 1 lần). Request không chữ ký trả `401` ngay và bị rate-limit theo IP.

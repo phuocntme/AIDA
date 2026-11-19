@@ -1,16 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AgentView } from "@aida/sdk";
-import { chain, errMsg, readClient } from "../aida.tsx";
-import { ArrowPill, Avatar, ScoreBar, Status, Terrain, pad, short } from "../ui.tsx";
+import { deployment, errMsg, readClient } from "../aida.tsx";
+import { Avatar, ScoreBar, Status, Terrain } from "../ui.tsx";
 import { Activity } from "../Activity.tsx";
 import { verdictLabel, type VerdictCls } from "../verdict.ts";
+
+/** What an agent without reviews is, so a buyer or a validator does not read as "untrusted". */
+function roleOf(a: AgentView, guarded: Set<string>): string | undefined {
+  if (a.count > 0n) return undefined;
+  if (guarded.has(a.agentId.toString())) return "Buyer";
+  if (deployment?.validatorAgentId === a.agentId.toString()) return "Validator";
+  return undefined;
+}
 
 const TABS: { key: "all" | VerdictCls; label: string }[] = [
   { key: "all", label: "All" },
   { key: "trusted", label: "Trusted" },
-  { key: "okay", label: "Okay" },
   { key: "risky", label: "Risky" },
-  { key: "unknown", label: "New" },
 ];
 
 export function Directory() {
@@ -19,10 +25,15 @@ export function Directory() {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
 
+  const [guarded, setGuarded] = useState<Set<string>>(new Set());
   useEffect(() => {
     readClient!
       .list()
-      .then(setAgents)
+      .then(async (list) => {
+        setAgents(list);
+        const ps = await Promise.all(list.map((a) => readClient!.policy(a.agentId).catch(() => null)));
+        setGuarded(new Set(ps.flatMap((p) => (p ? [p.agentId.toString()] : []))));
+      })
       .catch((e) => setError(`Could not read the registry: ${errMsg(e)}`));
   }, []);
 
@@ -48,75 +59,30 @@ export function Directory() {
   return (
     <>
       <section className="hero">
-        <div className="eyebrow mono">
-          <span className="dot risky" /> ERC-8004 · AVALANCHE C-CHAIN · x402
-        </div>
-        <h1 className="display">
-          On-chain identity
-          <br />
-          <span className="light">for every AI agent.</span>
-        </h1>
-        <p className="lead">
-          Every agent gets an NFT passport and a reputation score written by its own customers. Paid services check AIDA before they accept money over x402.
-        </p>
-        <div className="cta-row">
-          <ArrowPill href="#/register">Register an agent</ArrowPill>
-          <a className="text-link" href="#directory">
-            Browse the directory
-          </a>
-        </div>
+        <h1 className="display">Check before you pay</h1>
+        <p className="hero-sub">AI agents on Avalanche. Scores are written only after a payment and computed on-chain from Chainlink.</p>
       </section>
 
-      <div className="terrain-wrap">{agents && agents.length > 0 && <Terrain agents={agents} />}</div>
+      <div className="terrain-wrap">{agents && agents.length > 0 && <Terrain agents={agents} tag={(a) => roleOf(a, guarded)} />}</div>
 
       <section className="stats">
         <div>
-          <span className="label mono">REGISTERED AGENTS</span>
+          <span className="label mono">AGENTS</span>
           <b>{stats.agents}</b>
         </div>
         <div>
-          <span className="label mono">ON-CHAIN REVIEWS</span>
+          <span className="label mono">PAID REVIEWS</span>
           <b>{stats.reviews}</b>
         </div>
         <div>
-          <span className="label mono">AVERAGE TRUST</span>
-          <b>
-            {stats.avg ?? "—"}
-            <small> / 100</small>
-          </b>
-        </div>
-        <div>
-          <span className="label mono">NETWORK</span>
-          <b className="net">{chain?.name}</b>
+          <span className="label mono">AVG TRUST</span>
+          <b>{stats.avg ?? "—"}</b>
         </div>
       </section>
-
-      <section id="how" className="how">
-        <article>
-          <span className="mono step">01</span>
-          <h3>Mint an identity</h3>
-          <p>An ERC-721 passport pointing to an ERC-8004 agent card: name, description, endpoints, payout wallet.</p>
-        </article>
-        <article>
-          <span className="mono step">02</span>
-          <h3>Earn reputation</h3>
-          <p>After every job, customers score the agent 0–100 on-chain. Owners can never rate themselves.</p>
-        </article>
-        <article>
-          <span className="mono step">03</span>
-          <h3>Get paid over x402</h3>
-          <p>Paid services read the caller’s AIDA score, answer HTTP 402, and take AVAX only from agents they trust.</p>
-        </article>
-      </section>
-
-      {agents && <Activity agents={agents} />}
 
       <section id="directory" className="directory">
         <div className="page-title-row">
-          <h2 className="display-2">
-            Agent <span className="light">directory</span>
-          </h2>
-          <ArrowPill href="#/register">Register agent</ArrowPill>
+          <h2 className="display-2">Agents</h2>
         </div>
         <div className="tabs-row">
           <div className="tabs" role="tablist">
@@ -131,45 +97,49 @@ export function Directory() {
               <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" fill="none" />
               <path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            <input aria-label="Search agents" placeholder="Search agents by name" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input aria-label="Search agents" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
           </label>
         </div>
         {error && <p className="error-line">{error}</p>}
         <div className="ledger" role="table" aria-label="Registered agents">
           <div className="ledger-head mono" role="row">
-            <span>ID</span>
             <span>AGENT</span>
             <span>TRUST</span>
             <span className="hide-sm">STATUS</span>
             <span className="hide-sm">REVIEWS</span>
-            <span className="hide-md">OWNER</span>
             <span />
           </div>
           {shown.map((a) => (
             <a key={a.agentId.toString()} className="ledger-row" href={`#/agent/${a.agentId}`} role="row">
-              <span className="mono dim">{pad(a.agentId)}</span>
-              <span className="agent-cell">
+              <span className="agent-cell" title={a.card?.description ?? a.cardErrors.join("; ")}>
                 <Avatar seed={a.owner} name={a.card?.name ?? "?"} />
                 <span className="agent-text">
-                  <span className="name">{a.card?.name ?? "Invalid card"}</span>
-                  <span className="desc">{a.card?.description ?? a.cardErrors.join("; ")}</span>
+                  <span className="name">
+                    {a.card?.name ?? "Invalid card"}
+                    {guarded.has(a.agentId.toString()) && (
+                      <span className="mini-chip" title="Payments go through AgentPolicy (caps, whitelist, kill switch)">
+                        policy
+                      </span>
+                    )}
+                  </span>
                 </span>
               </span>
               <ScoreBar count={a.count} average={a.average} />
               <span className="hide-sm">
-                <Status count={a.count} average={a.average} />
+                <Status count={a.count} average={a.average} role={roleOf(a, guarded)} />
               </span>
               <span className="mono hide-sm muted">{a.count.toString()}</span>
-              <span className="mono dim hide-md">{short(a.owner)}</span>
               <svg className="row-arrow" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </a>
           ))}
-          {agents && shown.length === 0 && <div className="empty">No agents match. Try another filter, or register the first one.</div>}
-          {!agents && !error && <div className="empty">Reading the registry…</div>}
+          {agents && shown.length === 0 && <div className="empty">No agents match.</div>}
+          {!agents && !error && <div className="empty">Loading…</div>}
         </div>
       </section>
+
+      {agents && <Activity agents={agents} />}
     </>
   );
 }

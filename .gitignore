@@ -17,3 +17,5 @@ dist/
 !.env.example
 .demo-logs/
 .playwright-mcp/
+packages/contracts/out-forge/
+packages/contracts/cache-forge/

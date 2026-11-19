@@ -25,12 +25,12 @@ export function Avatar({ seed, name, size = 48 }: { seed: string; name: string; 
   );
 }
 
-export function Status({ count, average }: { count: bigint; average: bigint }) {
+export function Status({ count, average, role }: { count: bigint; average: bigint; role?: string }) {
   const v = verdictLabel(count, average);
   return (
     <span className="status">
       <span className={`dot ${v.cls}`} />
-      {v.text}
+      {role ?? v.text}
     </span>
   );
 }
@@ -51,7 +51,7 @@ export function ScoreBar({ count, average }: { count: bigint; average: bigint })
  * Trust terrain — the signature element. A ridgeline drawn from real reputation:
  * each agent is a peak, its height is its average score.
  */
-export function Terrain({ agents, width = 1440, height = 400, lines = 22, labels = true }: { agents: AgentView[]; width?: number; height?: number; lines?: number; labels?: boolean }) {
+export function Terrain({ agents, width = 1440, height = 400, lines = 22, labels = true, tag }: { agents: AgentView[]; width?: number; height?: number; lines?: number; labels?: boolean; tag?: (a: AgentView) => string | undefined }) {
   const list = agents.length ? agents : [];
   const peaks = list.map((a, i) => ({
     x: (i + 0.5) / list.length,
@@ -99,8 +99,8 @@ export function Terrain({ agents, width = 1440, height = 400, lines = 22, labels
             <a key={p.agent.agentId.toString()} className="peak" href={`#/agent/${p.agent.agentId}`} style={{ left: `${p.x * 100}%`, top: `max(0px, calc(${((top / height) * 100).toFixed(2)}% - 64px))` }}>
               <span className="peak-chip">
                 <span className={`dot ${v.cls}`} />
-                {p.agent.card?.name ?? `#${p.agent.agentId}`}
-                <span className="dim">{p.agent.count === 0n ? "new" : p.agent.average.toString()}</span>
+                <span className="peak-name">{p.agent.card?.name ?? `#${p.agent.agentId}`}</span>
+                <span className="dim">{p.agent.count === 0n ? (tag?.(p.agent)?.toLowerCase() ?? "new") : p.agent.average.toString()}</span>
               </span>
               <span className="peak-stem" />
             </a>
@@ -129,5 +129,55 @@ export function ArrowPill({ href, children, onClick }: { href?: string; children
     <button className="pill-cta" onClick={onClick}>
       {inner}
     </button>
+  );
+}
+
+/** Review scores over time (dots) + running trust average (line); dashed line = the 60 hire threshold. */
+export function TrustChart({ points }: { points: { score: number; timestamp: bigint }[] }) {
+  if (points.length < 2) return null;
+  const W = 640, H = 168, P = { l: 30, r: 12, t: 12, b: 22 };
+  const sorted = [...points].sort((a, b) => Number(a.timestamp - b.timestamp));
+  const x = (i: number) => P.l + (i / (sorted.length - 1)) * (W - P.l - P.r);
+  const y = (v: number) => P.t + (1 - v / 100) * (H - P.t - P.b);
+  let sum = 0;
+  const avg = sorted.map((p, i) => ((sum += p.score), sum / (i + 1)));
+  const line = avg.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const area = `${line} L${x(sorted.length - 1).toFixed(1)},${y(0)} L${x(0)},${y(0)} Z`;
+  const c = (v: number) => (v >= 80 ? "var(--green)" : v >= 60 ? "var(--amber)" : "var(--accent)");
+  const fmt = (t: bigint) => new Date(Number(t) * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return (
+    <figure className="trust-chart" aria-label={`Trust over ${sorted.length} reviews`}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img">
+        <defs>
+          <linearGradient id="tc-fill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor={c(avg[avg.length - 1])} stopOpacity="0.18" />
+            <stop offset="1" stopColor={c(avg[avg.length - 1])} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 50, 100].map((v) => (
+          <g key={v}>
+            <line x1={P.l} x2={W - P.r} y1={y(v)} y2={y(v)} stroke="#1c1c1c" />
+            <text x={P.l - 8} y={y(v) + 4} textAnchor="end" className="tc-axis">
+              {v}
+            </text>
+          </g>
+        ))}
+        <line x1={P.l} x2={W - P.r} y1={y(60)} y2={y(60)} stroke="var(--accent)" strokeDasharray="4 4" strokeOpacity="0.6" />
+        <text x={W - P.r} y={y(60) - 6} textAnchor="end" className="tc-axis tc-60">
+          60
+        </text>
+        <path d={area} fill="url(#tc-fill)" />
+        <path d={line} fill="none" stroke={c(avg[avg.length - 1])} strokeWidth="2" />
+        {sorted.map((p, i) => (
+          <circle key={i} cx={x(i)} cy={y(p.score)} r="3.2" fill={c(p.score)} />
+        ))}
+        <text x={P.l} y={H - 4} className="tc-axis">
+          {fmt(sorted[0].timestamp)}
+        </text>
+        <text x={W - P.r} y={H - 4} textAnchor="end" className="tc-axis">
+          {fmt(sorted[sorted.length - 1].timestamp)}
+        </text>
+      </svg>
+    </figure>
   );
 }

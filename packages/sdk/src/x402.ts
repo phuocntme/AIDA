@@ -1,6 +1,7 @@
 // x402-style payment flow with native-token payments verified on-chain (no facilitator).
 // HTTP shape follows x402: 402 + { x402Version, accepts: [requirement] }, retry with X-PAYMENT.
-import { keccak256, stringToBytes } from "viem";
+import { encodeAbiParameters, keccak256, parseEventLogs, recoverMessageAddress, stringToBytes } from "viem";
+import { agentPolicyAbi } from "./abi.ts";
 import { base64ToUtf8, utf8ToBase64 } from "./card.ts";
 
 export type Hex = `0x${string}`;
@@ -66,7 +67,7 @@ export function gateByReputation(summary: { count: bigint; average: bigint }, mi
 /** Minimal chain reader (a viem PublicClient satisfies this). */
 export type ChainReader = {
   getTransaction(args: { hash: Hex }): Promise<{ to: string | null; value: bigint; from: string; input?: Hex }>;
-  getTransactionReceipt(args: { hash: Hex }): Promise<{ status: string }>;
+  getTransactionReceipt(args: { hash: Hex }): Promise<{ status: string; logs?: readonly { address: string; data: Hex; topics: readonly Hex[] }[] }>;
 };
 
 /**
@@ -113,6 +114,87 @@ export async function verifyPayment(
   return { ok: true };
 }
 
+/**
+ * Verifies a payment made through AgentPolicy.pay (agents that run behind a policy must pay this way).
+ * Checks the Paid event emitted by the policy contract: payer agent, recipient, amount and nonce commitment.
+ */
+export async function verifyPolicyPayment(
+  chain: ChainReader,
+  payment: PaymentPayload,
+  req: PaymentRequirement,
+  policy: Hex,
+  callerId: bigint,
+  usedTx: Set<string>,
+): Promise<Check> {
+  const key = payment.txHash.toLowerCase();
+  if (usedTx.has(key)) return { ok: false, reason: "payment tx already used" };
+  if (payment.nonce !== req.nonce) return { ok: false, reason: "payment nonce does not match the 402 challenge" };
+  usedTx.add(key);
+  const fail = (reason: string): Check => {
+    usedTx.delete(key);
+    return { ok: false, reason };
+  };
+  try {
+    const receipt = await chain.getTransactionReceipt({ hash: payment.txHash });
+    if (receipt.status !== "success") return fail("payment tx failed on-chain");
+    const logs = (receipt.logs ?? []).filter((l) => l.address.toLowerCase() === policy.toLowerCase());
+    const paid = parseEventLogs({ abi: agentPolicyAbi, logs: logs as never, eventName: "Paid" });
+    const ref = nonceToData(req.nonce);
+    const hit = paid.find(
+      (e) => e.args.agentId === callerId && e.args.to.toLowerCase() === req.payTo.toLowerCase() && e.args.amount >= BigInt(req.maxAmountRequired) && e.args.ref.toLowerCase() === ref,
+    );
+    if (!hit) return fail("no matching AgentPolicy Paid event (agent, recipient, amount, nonce)");
+  } catch (e) {
+    return fail(`could not read payment tx: ${(e as Error).message.split("\n")[0]}`);
+  }
+  return { ok: true };
+}
+
+// ---------- caller authentication ----------
+// A seller only issues a 402 challenge to a caller that proves it holds the agent's wallet. The caller signs
+// (personal_sign) a digest over: this scheme's tag, the chain, its agent id, the seller's origin ("audience"),
+// the path, a timestamp and a random nonce. Header: X-Agent-Auth = base64 JSON { ts, nonce, sig }.
+// Without this, X-Agent-Id could be spoofed to use up another agent's open-challenge quota.
+
+export type CallAuth = { ts: number; nonce: string; sig: Hex };
+export type CallAuthScope = { chainId: number; agentId: bigint; audience: string; path: string };
+export const CALL_AUTH_MAX_SKEW_S = 120;
+
+export function callAuthDigest(scope: CallAuthScope, ts: number, nonce: string): Hex {
+  return keccak256(
+    encodeAbiParameters(
+      [{ type: "string" }, { type: "uint256" }, { type: "uint256" }, { type: "string" }, { type: "string" }, { type: "uint64" }, { type: "string" }],
+      ["aida-call-v1", BigInt(scope.chainId), scope.agentId, scope.audience.toLowerCase(), scope.path, BigInt(ts), nonce],
+    ),
+  );
+}
+
+export const encodeCallAuth = (a: CallAuth) => utf8ToBase64(JSON.stringify(a));
+
+/** Shape and freshness only (cheap, no chain read). */
+export function decodeCallAuth(header: string | undefined, nowS: number, maxSkewS = CALL_AUTH_MAX_SKEW_S): { ok: true; auth: CallAuth } | { ok: false; reason: string } {
+  if (!header) return { ok: false, reason: "X-Agent-Auth header missing" };
+  try {
+    const a = JSON.parse(base64ToUtf8(header)) as Record<string, unknown>;
+    if (!Number.isInteger(a.ts) || typeof a.nonce !== "string" || !/^[0-9a-f]{16,64}$/.test(a.nonce) || typeof a.sig !== "string" || !/^0x[0-9a-fA-F]{130}$/.test(a.sig)) {
+      return { ok: false, reason: "X-Agent-Auth must be base64 JSON { ts, nonce, sig }" };
+    }
+    if (Math.abs(nowS - (a.ts as number)) > maxSkewS) return { ok: false, reason: "X-Agent-Auth timestamp is too old or in the future" };
+    return { ok: true, auth: { ts: a.ts as number, nonce: a.nonce, sig: a.sig as Hex } };
+  } catch {
+    return { ok: false, reason: "X-Agent-Auth header is not base64 JSON" };
+  }
+}
+
+/** Who signed this call for this scope. Null if the signature is malformed. */
+export async function callAuthSigner(scope: CallAuthScope, auth: CallAuth): Promise<Hex | null> {
+  try {
+    return await recoverMessageAddress({ message: { raw: callAuthDigest(scope, auth.ts, auth.nonce) }, signature: auth.sig });
+  } catch {
+    return null;
+  }
+}
+
 export type PaidCallStep =
   | { kind: "request"; status: number; body: unknown }
   | { kind: "paid"; txHash: Hex; requirement: PaymentRequirement };
@@ -120,16 +202,21 @@ export type PaidCallStep =
 /**
  * Client side of the flow: GET -> (402) -> pay(requirement) -> retry with X-PAYMENT.
  * Returns every step so a UI can show the protocol. Never retries more than once.
+ * With `signCall`, every request carries X-Agent-Auth, which sellers require before they issue a challenge.
  */
 export async function callPaidAgent(
   url: string,
   agentId: bigint,
   pay: (req: PaymentRequirement) => Promise<Hex>,
   fetchImpl: typeof fetch = fetch,
+  /** Returns the X-Agent-Auth header for one request (a fresh signature each time). */
+  signCall?: (to: { audience: string; path: string }) => Promise<string>,
 ): Promise<{ ok: boolean; steps: PaidCallStep[]; body: unknown }> {
   const steps: PaidCallStep[] = [];
+  const target = new URL(url);
   const get = async (extra: Record<string, string> = {}) => {
-    const res = await fetchImpl(url, { headers: { "X-Agent-Id": agentId.toString(), ...extra } });
+    const auth: Record<string, string> = signCall ? { "X-Agent-Auth": await signCall({ audience: target.origin, path: target.pathname }) } : {};
+    const res = await fetchImpl(url, { headers: { "X-Agent-Id": agentId.toString(), ...auth, ...extra } });
     const body = await res.json().catch(() => ({ error: `non-JSON response (HTTP ${res.status})` }));
     steps.push({ kind: "request", status: res.status, body });
     return { status: res.status, body: body as Record<string, unknown> };

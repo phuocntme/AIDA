@@ -13,7 +13,9 @@
     "demo": "bash scripts/demo.sh",
     "e2e": "bash scripts/e2e.sh",
     "demo:fuji": "bash scripts/demo-fuji.sh",
-    "agents:fuji": "pnpm -F @aida/agent network:fuji",
-    "hire": "pnpm -F @aida/agent hire"
+    "agents:fuji": "pnpm -F @aida/agent network",
+    "hire": "pnpm -F @aida/agent hire",
+    "guardian": "pnpm -F @aida/agent guardian",
+    "recycle": "pnpm -F @aida/agent recycle"
   }
 }
